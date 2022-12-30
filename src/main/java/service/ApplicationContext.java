@@ -4,10 +4,10 @@ import spring.*;
 
 import java.beans.Introspector;
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ApplicationContext {
@@ -16,6 +16,7 @@ public class ApplicationContext {
 
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>();// 大名鼎鼎单例池
+    private ArrayList<TestBeanPostProcessor> testBeanPostProcessorList = new ArrayList<>();
 
     public ApplicationContext(Class configClass){
         this.configClass = configClass;
@@ -42,6 +43,13 @@ public class ApplicationContext {
                         try {
                             Class<?> clazz = classLoader.loadClass(className);
                             if (clazz.isAnnotationPresent(Component.class)) {
+
+                                // 如果类实现了BeanPostProcessor接口
+                                if(TestBeanPostProcessor.class.isAssignableFrom(clazz)){
+                                    TestBeanPostProcessor instance = (TestBeanPostProcessor) clazz.newInstance();
+                                    testBeanPostProcessorList.add(instance);
+                                }
+
                                 // 是Bean
                                 // 1. 拿到bean的名字
                                 Component componentAnnotation = clazz.getAnnotation(Component.class);
@@ -66,6 +74,10 @@ public class ApplicationContext {
                             }
                         } catch (ClassNotFoundException e) {
 
+                        } catch (InstantiationException e) {
+                            throw new RuntimeException(e);
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
                         }
 
                     }
@@ -100,6 +112,23 @@ public class ApplicationContext {
             // Aware回调
             if(bean instanceof BeanNameAware){
                 ((BeanNameAware) bean).setBeanName(beanName);
+            }
+
+            // 此处是重复调，每个bean创建的时候都会调用
+            // 初始化前：postProcessBeforeInitializing
+            for (TestBeanPostProcessor testBeanPostProcessor : testBeanPostProcessorList) {
+                // 这里完全可以对bean做修改，比如换成代理对象 / ...
+                bean = testBeanPostProcessor.postProcessBeforeInitializing(beanName, bean);
+            }
+
+            // 初始化
+            if(bean instanceof InitializingBean){
+                ((InitializingBean) bean).afterPropertiesSet();
+            }
+
+            // 初始化后: postProcessAfterInitializing
+            for (TestBeanPostProcessor testBeanPostProcessor : testBeanPostProcessorList) {
+                bean = testBeanPostProcessor.postProcessAfterInitializing(beanName, bean);
             }
 
             return bean;

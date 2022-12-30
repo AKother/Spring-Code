@@ -1,13 +1,10 @@
 package service;
 
-import spring.Autowired;
-import spring.BeanNameAware;
-import spring.Component;
-import spring.Scope;
+import spring.*;
 
 @Component("userService")
 @Scope("prototype")
-public class UserService implements BeanNameAware {
+public class UserService implements BeanNameAware, InitializingBean, UserInterface {
 
     @Autowired
     private OrderService orderService;
@@ -15,11 +12,17 @@ public class UserService implements BeanNameAware {
     private String beanName;
 
     public void test(){
+        System.out.println("进入test方法");
         System.out.println(orderService);
     }
 
     @Override
     public void setBeanName(String beanName) {
         this.beanName = beanName;
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+
     }
 }

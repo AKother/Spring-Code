@@ -7,7 +7,7 @@ public class Test {
         // 创建一个Spring容器
         ApplicationContext applicationContext = new ApplicationContext(AppConfig.class);
 
-        UserService userService = (UserService) applicationContext.getBean("userService");
+        UserInterface userService = (UserInterface) applicationContext.getBean("userService");
         userService.test();
 
 
