@@ -97,6 +97,11 @@ public class ApplicationContext {
                 }
             }
 
+            // Aware回调
+            if(bean instanceof BeanNameAware){
+                ((BeanNameAware) bean).setBeanName(beanName);
+            }
+
             return bean;
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
